@@ -1,0 +1,41 @@
+<div id="page">
+      <div id="content">
+        <form class="form-horizontal" action="[% req.base_url %]/newrepo" method="POST" enctype="multipart/form-data">
+        <fieldset>
+          <legend>New Repository</legend>
+          [% IF error %]<h2>[% error %]</h2>[% END -%]
+
+
+          <div class="control-group">
+            <label class="control-label" for="name">Project Name</label>
+            <div class="controls">
+              <select name="project">
+                <% FOREACH my project IN projects.sort %>
+                <option value="[% project %]">[% project %][% IF project == currentproject %] selected [% END -%]</option>
+                <% END -%>
+              </select>
+            </div>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="name">Repoitory Name</label>
+            <div class="controls">
+              <input type="text" name="name" id="name">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="desc">Description</label>
+            <div class="controls">
+              <input type="text" name="desc" id="desc">
+            </div>
+          </div>
+
+          <div class="form-actions">
+              <button name="register" class="btn btn-primary">Create Repository</button>
+              <button type="button" class="btn">Cancel</button>
+          </div>
+
+        </fieldset>
+        </form>
+     </div>
+</div>

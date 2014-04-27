@@ -1,0 +1,30 @@
+<div id="page">
+      <div id="content">
+        <form class="form-horizontal" action="[% req.base_url %]/newproject" method="POST" enctype="multipart/form-data">
+        <fieldset>
+          <legend>New Project</legend>
+          [% IF error %]<h1>[% error %]</h1>[% END -%]
+
+          <div class="control-group">
+            <label class="control-label" for="name">Project Name</label>
+            <div class="controls">
+              <input type="text" name="name" id="name">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="desc">Description</label>
+            <div class="controls">
+              <input type="text" name="desc" id="desc">
+            </div>
+          </div>
+
+          <div class="form-actions">
+              <button name="register" class="btn btn-primary">Create Project</button>
+              <button type="button" class="btn">Cancel</button>
+          </div>
+
+        </fieldset>
+        </form>
+     </div>
+</div>
