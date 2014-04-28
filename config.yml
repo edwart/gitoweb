@@ -14,7 +14,11 @@ layout: "bootstrap"
 # about unicode within your app when this setting is set (recommended).
 charset: "UTF-8"
 
-session: YAML
+session: "YAML"
+
+repodir: "/Users/tony/repos"
+
+gitpath: "/usr/bin/git"
 
 # template engine
 # simple: default and very basic template engine

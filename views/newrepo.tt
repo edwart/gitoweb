@@ -10,9 +10,9 @@
             <label class="control-label" for="name">Project Name</label>
             <div class="controls">
               <select name="project">
-                <% FOREACH my project IN projects.sort %>
-                <option value="[% project %]">[% project %][% IF project == currentproject %] selected [% END -%]</option>
-                <% END -%>
+                [% FOREACH project IN projects %]
+                <option value="[% project.name %]">[% project.name %][% IF project.name == currentproject %] selected [% END -%]</option>
+                [% END -%]
               </select>
             </div>
           </div>
@@ -27,6 +27,13 @@
             <label class="control-label" for="desc">Description</label>
             <div class="controls">
               <input type="text" name="desc" id="desc">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="public">Public Repo ?</label>
+            <div class="controls">
+              <input type="radio" name="public" id="public">
             </div>
           </div>
 

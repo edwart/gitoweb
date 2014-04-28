@@ -15,6 +15,10 @@ my $pbkdf2 = Crypt::PBKDF2->new(
     iterations => 10000,
     salt_len => 10,
 );
+my $gitpath = config->{'gitpath'};
+my $repodir = config->{'repodir'};
+
+
 get '/' => sub {
     check_logged_in();
     template 'index';
@@ -79,7 +83,10 @@ post '/newproject' => sub {
 
 };
 get '/newrepo' => sub {
-     template 'newrepo', { project => params->{project}, error => params->{error}  };
+     my @projects = database->quick_select('project', {});
+     debug Dumper \@projects;
+    
+     template 'newrepo', { currentproject => params->{'project'}, projects =>\@projects, error => params->{'error'}  };
 };
 post '/newrepo' => sub {
     unless (params->{project}) {
@@ -91,14 +98,35 @@ post '/newrepo' => sub {
     unless (params->{desc}) {
         redirect '/newrepo?error="Mandatory param Description not supplied"';
     }
-    my $rows = database->quick_count('repository', { name => params->{name} });
+    my $rows = database->quick_count('repository', { name => params->{'name'} });
     unless ($rows == 0) {
         redirect '/newproject?error="Repository already exists"';
     }
-    database->quick_insert('repo', { name => params->{'name'},
+    database->quick_insert('repository', { name => params->{'name'},
                                      description => params->{'desc'} } );
-    redirect '/repo/'
+
+    
+    my $dir = join('/', $repodir, params->{'project'});
+    mkdir $dir unless -d $dir;
+    $dir .= '/'.params->{'name'};
+    mkdir $dir unless -d $dir;
+    chdir $dir;
+    debug "making repo in $dir";
+    system($gitpath, '--bare', 'init');
+    redirect '/repo/'. params->{'name'}.'/empty';
 };
+get '/repo/*/*' => sub {
+    my ($repo, $status) = splat;
+    debug "repo  = $repo";
+    debug "status  = $status";
+    if ($status eq 'empty') {
+        template 'emptyrepo', { repo => $repo };
+    }
+    else {
+        template 'repo', { repo => $repo };
+    }
+};
+
 sub check_logged_in {
   if (! session('user') && request->path_info !~ m{^/login}) {
         var requested_path => request->path_info;

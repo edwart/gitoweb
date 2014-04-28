@@ -1,0 +1,10 @@
+<div id="page">
+    <div id="content">
+    <h2>touch README.md</h2>
+    <h2>git init</h2>
+    <h2>git add README.md</h2>
+    <h2>git commit -m "first commit"</h2>
+    <h2>git remote add origin git@[% request.uri_base %]/[% project %]:[% repo %].git</h2>
+    <h2>git push -u origin master</h2>
+      </div>
+</div>
