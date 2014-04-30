@@ -36,8 +36,6 @@
 <li><a href="[% request.uri_base %]/login">Log in</a></li>
 <li><a href="[% request.uri_base %]/register">Register</a></li>
 [% END %]
-          <li><a href="#about">About</a></li>
-          <li><a href="#contact">Contact</a></li>
         </ul>
 </div>
 </div>

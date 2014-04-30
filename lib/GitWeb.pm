@@ -19,8 +19,14 @@ my $gitpath = config->{'gitpath'};
 my $repodir = config->{'repodir'};
 
 
+hook before => sub {
+    my @users = database->quick_select('project', {});
+    if (!session('user') && request->dispatch_path !~ m{^/login}) {
+        # Pass the original path requested along to the handler:
+        forward '/login', { requested_path => request->dispatch_path };
+    }
+};
 get '/' => sub {
-    check_logged_in();
     template 'index';
 };
 
@@ -126,13 +132,5 @@ get '/repo/*/*' => sub {
         template 'repo', { repo => $repo };
     }
 };
-
-sub check_logged_in {
-  if (! session('user') && request->path_info !~ m{^/login}) {
-        var requested_path => request->path_info;
-        redirect '/login';
-    }
-
-}
 
 true;
