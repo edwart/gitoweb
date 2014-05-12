@@ -1,0 +1,13 @@
+[% USE Dumper %]
+[% Dumper.dump_html( repos, project) %]
+<h1>Repositories in Project [% project.name %]</h1>
+<div>
+<table border=1>
+<tr><th>Repository</th><th>Description</th></tr>
+[% FOREACH repo IN repos %]
+<tr><td><a href="/repo/[% project.name %]/[% repo.name %]">[% repo.name %]</a></td><td>[% repo.description %]</td></tr>
+[% END %]
+</table>
+</div>
+<br>
+<button onclick="window.location.href='/newrepo/[% project.name %]'">Create Repo</button>

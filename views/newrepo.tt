@@ -11,7 +11,7 @@
             <div class="controls">
               <select name="project">
                 [% FOREACH project IN projects %]
-                <option value="[% project.name %]">[% project.name %][% IF project.name == currentproject %] selected [% END -%]</option>
+                <option value="[% project.name %]"[% IF project.name == currentproject %] selected [% END -%]>[% project.name %]</option>
                 [% END -%]
               </select>
             </div>

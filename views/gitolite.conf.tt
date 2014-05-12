@@ -1,0 +1,13 @@
+@all = [% usernames.join(", ") %]
+
+repo gitolite-admin
+    RW+     =   git2
+
+repo testing
+    RW+     =   @all
+
+[% FOREACH repo IN repos %]
+repo [% repo.name %] 
+    RW+     =   @all
+
+[% END %]

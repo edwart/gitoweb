@@ -1,0 +1,14 @@
+[% USE Dumper %]
+<form class="form-horizontal" action="[% req.base_url %]/newproject" method="POST" enctype="multipart/form-data">
+<h1>Projects</h1>
+<div>
+<table border=1>
+<tr><th>Project</th><th>Description</th></tr>
+[% FOREACH project IN projects %]
+<tr><td><a href="/project/[% project.id %]">[% project.name %]</a></td><td>[% project.description %]</td></tr>
+[% END %]
+</table>
+</div>
+<br>
+<button name="newproject">Create project</button>
+</form>

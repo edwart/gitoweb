@@ -1,0 +1,11 @@
+<div id="page">
+
+      <div id="content">
+		<table 
+			<tr><th>user</th></tr>
+			[% FOREACH user IN users %]
+			<tr><th>[% user.name %]</th></tr>
+			[% END %]
+	    </table>
+     </div>
+</div>

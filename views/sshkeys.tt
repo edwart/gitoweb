@@ -1,0 +1,14 @@
+[% USE Dumper %]
+<st
+<form class="form-horizontal" action="[% req.base_url %]/newproject" method="POST" enctype="multipart/form-data">
+<h1>SSH Keys</h1>
+<div>
+<table style="width:800px;" border=1>
+<tr><th>Name</th><th>ssh key</th></tr>
+[% FOREACH sshkey  IN sshkeys %]
+<tr><td>[% sshkey.name %]</td><td><textarea rows="8" cols="200">[% sshkey.sshkey %]</textarea></td></tr>
+[% END %]
+</table>
+</div>
+<br>
+</form>

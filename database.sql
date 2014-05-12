@@ -8,19 +8,21 @@ create table user (id INTEGER PRIMARY KEY ASC not null,
 		   name TEXT not null,
 		   pass TEXT null);
 
-insert into user (name) VALUES ('git');
+insert into user (name) VALUES ('admin');
+
+
+drop table if exists user_sshkeys;
+create table user_sshkeys (user_id INTEGER PRIMARY KEY ASC not null,
+			   sshkey_id INTEGER);
 
 drop table if exists sshkeys;
 create table sshkeys (id INTEGER PRIMARY KEY ASC not null,
-		      sshkey TEXT not null,
-		);
+		      name TEXT not null,
+		      sshkey TEXT not null);
 
 drop table if exists group_members;
-create table group_members (id INTEGER PRIMARY KEY ASC not null,
-			    group_id INTEGER,
-			    member_group_id INTEGER null,
-			    member_user_id INTEGER null );
-insert into group_members (group_id, member_user_id) values (1, 1);
+create table group_members (group_name TEXT,
+			    sshkey_id INTEGER null );
 
 drop table if exists types;
 create table types (id INTEGER PRIMARY KEY ASC not null,
@@ -48,6 +50,6 @@ create table if not exists project (id INTEGER PRIMARY KEY ASC not null,
 create table if not exists repository (id INTEGER PRIMARY KEY ASC not null,
                                         name TEXT not null,
                                         description TEXT not null,
-                                        is_public INTEGER not null,
+                                        is_public INTEGER null,
                                         projectid INTEGER not null,
                                         FOREIGN KEY(projectid) REFERENCES project(id) );

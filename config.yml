@@ -16,8 +16,6 @@ charset: "UTF-8"
 
 session: "YAML"
 
-repodir: "/Users/tony/repos"
-
 gitpath: "/usr/bin/git"
 
 # template engine
@@ -32,6 +30,7 @@ engines:
     template_toolkit:
       start_tag: '[%'
       end_tag:   '%]'
+
 
 plugins:
         Database:
