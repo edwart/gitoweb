@@ -1,37 +1,13 @@
-<div id="page">
-      <div id="content">
-        <form class="form-horizontal" action="[% req.base_url %]/register" method="POST" enctype="multipart/form-data">
-        <fieldset>
-          <legend>Register</legend>
+[% IF files.size == 0 %]
+<h2>
+touch README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin [% user %]://[% hostname %]:[% project %]/[% repo %].git
+git push -u origin master
+</h2>
+[% ELSE %]
 
-          <div class="control-group">
-            <label class="control-label" for="user">User name</label>
-            <div class="controls">
-              <input type="text" name="user" id="user">
-            </div>
-          </div>
 
-          <div class="control-group">
-            <label class="control-label" for="pass">Password</label>
-            <div class="controls">
-              <input type="password" name="pass" id="pass">
-            </div>
-          </div>
-
-          <div class="control-group">
-            <div class="controls">
-              <label class="checkbox" for="permanent_cookie">
-                <input name="permanent_cookie" type="checkbox" checked="checked">
-                Remember me
-              </label>
-            </div>
-          </div>
-          <div class="form-actions">
-              <button name="register" class="btn btn-primary">Register</button>
-              <button type="button" class="btn">Cancel</button>
-          </div>
-
-        </fieldset>
-        </form>
-     </div>
-</div>
+[% END %]

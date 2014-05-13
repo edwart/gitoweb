@@ -18,6 +18,8 @@ session: "YAML"
 
 gitpath: "/usr/bin/git"
 
+repodir: "/export/home/git2/repositories"
+
 # template engine
 # simple: default and very basic template engine
 template_toolkit: TT

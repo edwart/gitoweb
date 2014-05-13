@@ -6,12 +6,15 @@ use File::HomeDir;
 use Dancer2;
 use Crypt::PBKDF2;
 use Dancer2::Plugin::Database;
+use Git;
 use Template;
+use Sys::Hostname;
 use Data::Dumper::Hash;
 my $login = getlogin || getpwuid($<);
+my $hostname = hostname;
 
 our $VERSION = '0.1';
-my $dbh = database('gitweb.sqlite');
+
 my $salt = 'somethingfisshy';
 my $pbkdf2 = Crypt::PBKDF2->new(
 	hash_class => 'HMACSHA2',
@@ -32,18 +35,8 @@ set session_dir => dirname($Bin).'/sessions';
 =for 
 hook before => sub {
 	unless (-d $gitolite_admin ) {
-		say(qq!ssh-keygen -b 2048 -t rsa -f $home/.ssh/${login} -P "" -q!);
-		system(qq!ssh-keygen -b 2048 -t rsa -f $home/.ssh/${login} -P "" -q!);
+		initial_setup();
 	}
-	unless (-d  "$home/bin") {
-		mkdir("$home/bin");
-		say(qq!$home/gitolite/install -to $home/bin!);
-		system(qq!$home/gitolite/install -to $home/bin!);
-		say(qq!$home/bin/gitolite setup -pk  $home/${login}.pub!);
-		system(qq!$home/bin/gitolite setup -pk  $home/.ssh/${login}.pub!);
-		system(qq!git clone file://$home/repositories/gitolite-admin.git!);
-	}
-
 	if (!session('user') && request->dispatch_path !~ m{^/(login|register)}) {
 		# Pass the original path requested along to the handler:
 		forward '/login', { requested_path => request->dispatch_path };
@@ -52,8 +45,19 @@ hook before => sub {
 =cut
 
 get '/' => sub {
-	reconfig_gitolite();
-    template 'index';
+#	reconfig_gitolite();
+    my @repos = database->quick_select('repos', {});
+    template 'index', { repos => \@repos };
+};
+
+get '/reset' => sub {
+	reset_it();
+	redirect '/';
+};
+
+get '/setup' => sub {
+	initial_setup();
+	forward '/';
 };
 get '/users' => sub {
     my @users = database->quick_select('user', {});
@@ -129,8 +133,12 @@ post '/newproject' => sub {
     debug "making project in ".params->{name};
     database->quick_insert('project', { name => params->{'name'},
                                      description => params->{'desc'} } );
-    redirect '/projects';
+    redirect '/';
 
+};
+get '/newrepo' => sub {
+    my @projects = database->quick_select('project', {});
+    template 'newrepo', {  projects => \@projects, error => params->{'error'}  };
 };
 get '/newrepo/:project' => sub {
     my @projects = database->quick_select('project', {});
@@ -159,16 +167,17 @@ post '/newrepo' => sub {
 							 		 is_public => params->{public} eq 'on'});
 
 	reconfig_gitolite();
+	redirect '/';
+
 };
 get '/repo/*/*' => sub {
-    my ($project,$repo, $status) = splat;
+    my ($project,$repo) = splat;
+	my $git = Git->repository(Directory =>  "$repodir/$project/${repo}.git" );
 
-    if ($status eq 'empty') {
-        template 'emptyrepo', { repo => $repo };
-    }
-    else {
-        template 'repo', { repo => $repo };
-    }
+	my @files = $git->command('log', '--pretty=format:',  '--name-only',  '--diff-filter=A');
+	debug Dump(files => \@files);
+
+	template 'repo', { user => $login, hostname => $hostname, repo => $repo , project => $project, files => \@files};
 };
 get '/sshkeys' => sub {
 	my @sshkeys = database->quick_select('sshkeys', {});
@@ -181,38 +190,36 @@ post '/addsshkey' => sub {
 	my %params = params;
 	debug Dump(params=> \%params);
 	my $count = database->quick_count('sshkeys', { name => params->{'keyname'} });
+	debug Dump(count => $count);
 	if ($count < 1) {
 		database->quick_insert('sshkeys', { name => params->{'keyname'},
 											sshkey => params->{'sshkey'},
 										  }
 							  );
+		my $gitolite_keydir = "$home/gitolite-admin/keydir";
+		my $keyfile = join("/",$gitolite_keydir, params->{'keyname'}.".pub");
+		my $fh;
+		chdir("$home/gitolite-admin");
+
+		$fh = new FileHandle ">$keyfile" or error "can't write $keyfile: $!";
+		$fh->print(params->{'sshkey'});
+		$fh->close;
+		system("git add keydir");
+		system(qq!git commit -m "added $keyfile"!);
 		reconfig_gitolite();
 	}
 	redirect '/sshkeys';
 };
 sub reconfig_gitolite {
 	my @sshkeys = database->quick_select('sshkeys', {});
-	my @repos = database->quick_select('repository', {});
+	debug Dump(sshkeys => \@sshkeys);
+	my @repos = database->quick_select('repos', {});
 	my @users = database->quick_select('user', {});
 	my @usernames = map { $_->{name} } @sshkeys;
 	my @groups = database->quick_select('groups', {});
 	my @group_members = database->quick_select('group_members', {});
 
 	my @changes = ();
-	my $gitolite_keydir = "$home/gitolite-admin/keydir";
-	foreach my $sshkey (@sshkeys) {
-		my $keyfile = join("/",$gitolite_keydir, $sshkey->{'name'});
-		if (-f $keyfile) {
-			my $fh = new FileHandle "<$keyfile";
-			my $oldkey = <$fh>;
-			next if $oldkey eq $sshkey->{'sshkey'};
-			$fh = new FileHandle ">$keyfile";
-			$fh->print($sshkey->{'sshkey'});
-			$fh->close;
-			push(@changes,  "keydir/".$sshkey->{'name'});
-			system("git add keydir/".$sshkey->{'name'});
-		}
-	}
 	my %groups = map { $_->{name} => {} } @groups;
 	my $processed = template 'gitolite.conf', { users => \@users, usernames => \@usernames, groups => \@groups, repos => \@repos }, {layout => 0 };
 	debug "processed = ".$processed;
@@ -223,7 +230,41 @@ sub reconfig_gitolite {
 	chdir $gitolite_admin;
 	system("git add conf/gitolite.conf");
 	system(qq!git commit -m "changed !.join("\n", @changes).'"');
-	system("git push");
+	system("git push -f");
 
+}
+sub reset_it {
+	debug "resetting";
+	foreach my $what (qw!bin gitolite-admin repositories projects.list git2 git2.pub .gitolite* .ssh sessions!) {
+		debug "rm -rf $home/$what";
+		my $fh = new FileHandle "rm -rf $home/$what 2>&1|";
+		while (my $line = <$fh>) {
+			debug $line;
+		}
+	}
+	chdir ("$home/gitoweb");
+	my $fh = new FileHandle "sqlite3 gitweb.sqlite < database.sql|";
+	while (my $line = <$fh>) {
+		debug $line;
+	}
+	debug "reset";
+}
+sub initial_setup {
+	unless (-d $gitolite_admin ) {
+		say(qq!ssh-keygen -b 2048 -t rsa -f $home/.ssh/id_rsa -P "" -q!);
+		system(qq!ssh-keygen -b 2048 -t rsa -f $home/.ssh/id_rsa -P "" -q!);
+		my $fh = new FileHandle "> $home/.ssh/config";
+		$fh->print("Host *\n\tStrictHostKeyChecking no\n");
+		$fh->close;
+	}
+	unless (-d  "$home/bin") {
+		mkdir("$home/bin");
+		say(qq!$home/gitolite/install -to $home/bin!);
+		system(qq!$home/gitolite/install -to $home/bin!);
+		say(qq!$home/bin/gitolite setup -pk  $home/.ssh/id_rsa.pub!);
+		system(qq!$home/bin/gitolite setup -pk  $home/.ssh/id_rsa.pub!);
+		chdir $home;
+		system(qq!git clone ${repodir}/gitolite-admin.git!);
+	}
 }
 true;

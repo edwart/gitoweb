@@ -31,8 +31,6 @@ insert into types (type) VALUES ('USER');
 insert into types (type) VALUES ('GROUP');
 
 drop table if exists repo;
-create table repo (id INTEGER PRIMARY KEY ASC not null,
-		   name TEXT not null );
 
 drop table if exists permissions;
 create table permissions (id INTEGER PRIMARY KEY ASC not null,
@@ -47,9 +45,20 @@ create table if not exists project (id INTEGER PRIMARY KEY ASC not null,
                                     );
  
 
+drop table if exists repository;
 create table if not exists repository (id INTEGER PRIMARY KEY ASC not null,
                                         name TEXT not null,
                                         description TEXT not null,
                                         is_public INTEGER null,
                                         projectid INTEGER not null,
                                         FOREIGN KEY(projectid) REFERENCES project(id) );
+
+drop view if exists repos;
+create view repos AS select project.name as projectname,
+							project.id as projectid,
+					  project.description as projectdesc,
+					  repository.name as reponame,
+					  repository.id as repositoryid,
+					  repository.description,
+					  repository.is_public
+				from project LEFT OUTER JOIN repository ON project.id = repository.projectid;

@@ -7,7 +7,7 @@ repo testing
     RW+     =   @all
 
 [% FOREACH repo IN repos %]
-repo [% repo.name %] 
+repo [% repo.projectname %]/[% repo.reponame %] 
     RW+     =   @all
 
 [% END %]
