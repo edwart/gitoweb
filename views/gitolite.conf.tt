@@ -1,13 +1,17 @@
-@all = [% usernames.join(", ") %]
+[% USE Dumper(Pad='#') %]
+[% Dumper.dump(config) %]
+[% IF config.sshkeys.size > 0 %]
+@all = [% config.sshkeys.keys.join(", ") %]
+[% END %]
 
 repo gitolite-admin
-    RW+     =   git2
+    RW+     =   [% env.LOGNAME %]
 
 repo testing
     RW+     =   @all
 
-[% FOREACH repo IN repos %]
-repo [% repo.projectname %]/[% repo.reponame %] 
+[% FOREACH repo IN config.repos.keys.sort %]
+repo [% config.repos.$repo.project %]/[% repo %] 
     RW+     =   @all
 
 [% END %]

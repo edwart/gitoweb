@@ -5,13 +5,12 @@
           <legend>New Repository</legend>
           [% IF error %]<h2>[% error %]</h2>[% END -%]
 
-
           <div class="control-group">
             <label class="control-label" for="name">Project Name</label>
             <div class="controls">
               <select name="project">
-                [% FOREACH project IN projects %]
-                <option value="[% project.name %]"[% IF project.name == currentproject %] selected [% END -%]>[% project.name %]</option>
+                [% FOREACH project IN projects.keys.sort %]
+                <option value="[% project %]"[% IF project == currentproject %] selected [% END -%]>[% project %]</option>
                 [% END -%]
               </select>
             </div>
