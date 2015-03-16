@@ -1,0 +1,3 @@
+<PRE>
+[% config.repos.$repo.files.$file.contents %]
+</PRE>

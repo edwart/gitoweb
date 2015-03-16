@@ -1,11 +1,6 @@
-[% USE Dumper(Pad='#') %]
-[% Dumper.dump(config) %]
-[% IF config.sshkeys.size > 0 %]
-@all = [% config.sshkeys.keys.join(", ") %]
-[% END %]
 
 repo gitolite-admin
-    RW+     =   [% env.LOGNAME %]
+    RW+     =   id_rsa
 
 repo testing
     RW+     =   @all

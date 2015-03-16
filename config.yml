@@ -16,9 +16,11 @@ charset: "UTF-8"
 
 session: "YAML"
 
-gitpath: "/usr/bin/git"
+logger: "file"
+
 
 repodir: "/home/s82435/repositories"
+gitpath: "/opt/app/murex/SEB/bin/git"
 
 template_toolkit: TT
 
@@ -29,7 +31,6 @@ engines:
     template_toolkit:
       start_tag: '[%'
       end_tag:   '%]'
-
 
 plugins:
         Database:

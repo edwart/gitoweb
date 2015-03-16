@@ -3,8 +3,8 @@
       <div id="content">
 		<table 
 			<tr><th>user</th></tr>
-			[% FOREACH user IN users %]
-			<tr><th>[% user.name %]</th></tr>
+			[% FOREACH user IN config.users.keys %]
+			<tr><th>[% user %]</th></tr>
 			[% END %]
 	    </table>
      </div>

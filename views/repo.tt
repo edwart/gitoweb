@@ -1,13 +1,9 @@
-[% IF files.size == 0 %]
-<h2>
-touch README.md
-git init
-git add README.md
-git commit -m "first commit"
-git remote add origin [% user %]://[% hostname %]:[% project %]/[% repo %].git
-git push -u origin master
-</h2>
-[% ELSE %]
-
-
+[% USE Dumper %]
+<!--
+[% Dumper.dump( repo ) %]
+-->
+<table border="0">
+[% FOREACH file IN config.repos.$repo.files.keys.sort %]
+   <tr><td><a href="/file/[% project %]/[% repo %]/[% file %]"</a>[% file %]</td></tr>
 [% END %]
+</table>

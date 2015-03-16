@@ -1,13 +1,12 @@
-[% USE Dumper %]
-[% Dumper.dump_html( repos, project) %]
-<h1>Repositories in Project [% project.name %]</h1>
+<h1>Repositories in Project [% project %]</h1>
 <div>
 <table border=1>
 <tr><th>Repository</th><th>Description</th></tr>
-[% FOREACH repo IN repos %]
-<tr><td><a href="/repo/[% project.name %]/[% repo.name %]">[% repo.name %]</a></td><td>[% repo.description %]</td></tr>
+[% FOREACH reponame IN config.projects.$project.repos.keys.sort %]
+[% repo = config.projects.$project.repos.$reponame %]
+<tr><td><a href="/repo/[% project %]/[% reponame %]">[% reponame %]</a></td><td>[% repo.description %]</td></tr>
 [% END %]
 </table>
 </div>
 <br>
-<button onclick="window.location.href='/newrepo/[% project.name %]'">Create Repo</button>
+<button onclick="window.location.href='/newrepo/[% project %]'">Create Repo</button>

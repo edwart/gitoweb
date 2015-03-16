@@ -1,4 +1,5 @@
 package GitWeb;
+use English;
 use FindBin qw/  $Bin /;
 use File::Basename qw/ dirname basename /;
 use File::Find::Rule;
@@ -6,9 +7,8 @@ use IPC::System::Simple qw/system systemx capture capturex run runx $EXITVAL EXI
 use feature 'say';
 use File::HomeDir;
 use Dancer2;
-use Crypt::PBKDF2;
 use Try::Tiny;
-use Git;
+#use Git;
 use Template;
 use Sys::Hostname;
 use Data::Dumper::Hash;
@@ -17,15 +17,6 @@ my $hostname = hostname;
 
 our $VERSION = '0.1';
 
-my $salt = 'somethingfisshy';
-my $pbkdf2 = Crypt::PBKDF2->new(
-	hash_class => 'HMACSHA2',
-	hash_args => {
-		sha_size => 512,
-	},
-    iterations => 10000,
-    salt_len => 10,
-);
 my $gitpath = config->{'gitpath'};
 my $repodir = config->{'repodir'};
 my $home = File::HomeDir->my_home;
@@ -51,7 +42,6 @@ hook before => sub {
         debug "\$gitolite_admin $gitolite_admin doesn't exist";
 		initial_setup();
 	}
-    get_gitolite_config();
 #	if (!session('user') && request->dispatch_path !~ m{^/(login|register)}) {
 #		# Pass the original path requested along to the handler:
 #		forward '/login', { requested_path => request->dispatch_path };
@@ -59,8 +49,12 @@ hook before => sub {
 };
 
 get '/' => sub {
+	load_config();
 #	reconfig_gitolite();
-    template 'index';
+    template 'index', { config => $config };
+};
+get '/docs' => sub {
+    send_file 'index.html';
 };
 
 
@@ -75,10 +69,10 @@ get '/setup' => sub {
 	forward '/';
 };
 get '/users' => sub {
-    template 'useradmin', { users => $config->{users} };
+    template 'useradmin', { config => $config };
 };
 get '/login' => sub {
-    template 'login', { path => vars->{requested_path} };
+    template 'login', { config => $config, path => vars->{requested_path} };
 };
 post '/login' => sub {
     chomp params->{pass};
@@ -119,7 +113,7 @@ any '/logout' => sub {
     redirect '/login';
 };
 get '/project/:project' => sub {
-	template 'project', { repos => $config->{repos}, project => params->{project} };
+	template 'project', { config => $config, project => params->{project} };
 };
 
 get '/projects' => sub {
@@ -184,20 +178,20 @@ post '/newrepo' => sub {
 
     save_config();
 	reconfig_gitolite();
+    $output = Data::Dumper->Dump([$config, ], [qw/$config/]);
+    debug "after newrepo $output";
 	redirect '/';
 
 };
-get '/repo/*/*' => sub {
-    my ($project,$repo) = splat;
-	my $git = Git->repository(Directory =>  "$repodir/$project/${repo}.git" );
-
-	my @files = $git->command('log', '--pretty=format:',  '--name-only',  '--diff-filter=A');
-	debug Dump(files => \@files);
-
-	template 'repo', { user => $login, hostname => $hostname, repo => $repo , project => $project, files => \@files};
+get '/repo/:project/:repo' => sub {
+    get_repo_details(params->{'project'}, params->{'repo'});
+	template 'repo', { config => $config, project => params->{'project'}, repo => params->{'repo'} };
 };
 get '/sshkeys' => sub {
-	template 'sshkeys', { sshkeys => $config->{sshkeys} };
+	template 'sshkeys', { sshkeys => $config->{sshkeys} }; #, { layout => undef };
+};
+get '/file/:project/:repo/:file' => sub {
+    template 'file', {config => $config, project => params->{'project'}, repo => params->{'repo'}, file =>  params->{'file'}};
 };
 get '/addsshkey' => sub {
 	template 'addsshkey';
@@ -233,7 +227,6 @@ post '/addsshkey' => sub {
 };
 sub reconfig_gitolite {
 	my @changes = ();
-	my %groups = map { $_ => {} } keys %{ $config->{groups} };
 	my $processed = template 'gitolite.conf', { config => $config, env => \%ENV }, {layout => 0 };
 	debug "processed = ".$processed;
 	my $fh = new FileHandle "> $gitolite_conf" or die "Whoops: can't write to $gitolite_conf: $!";
@@ -248,7 +241,7 @@ sub reconfig_gitolite {
 }
 sub reset_it {
 	debug "resetting";
-	foreach my $what (qw!bin/* gitolite-admin repositories projects.list *.pub .gitolite* .ssh/* sessions!) {
+	foreach my $what (qw!bin/* gitolite-admin gitolite gitoweb/gitoweb.cfg repositories projects.list *.pub .gitolite* .ssh/* sessions!) {
 		debug "rm -rf $home/$what";
 		my $fh = new FileHandle "rm -rf $home/$what 2>&1|";
 		while (my $line = <$fh>) {
@@ -265,11 +258,11 @@ sub initial_setup {
             system("/opt/app/murex/SEB/bin/git clone https://github.com/sitaramc/gitolite.git");
         };
         if (-e "$home/.ssh/gitolite") {
-            debug "rm -rf $home/.ssh/gitolite_admin";
-            system("rm -rf $home/.ssh/gitolite_admin");
+            debug "rm -rf $home/.ssh/id_rsa";
+            system("rm -rf $home/.ssh/id_rsa");
         }
-		say(qq!ssh-keygen -b 2048 -t rsa -f $home/.ssh/gitolite_admin -P "" -q!);
-		system(qq!ssh-keygen -b 2048 -t rsa -f $home/.ssh/gitolite_admin -P "" -q!);
+		say(qq!ssh-keygen -b 2048 -t rsa -f .ssh/id_rsa -P "" -q!);
+		system(qq!ssh-keygen -b 2048 -t rsa -f .ssh/id_rsa -P "" -q!);
 		my $fh = new FileHandle "> $home/.ssh/config";
 		$fh->print("Host *\n\tStrictHostKeyChecking no\n");
 		$fh->close;
@@ -279,12 +272,13 @@ sub initial_setup {
     }
 		say(qq!$home/gitolite/install -to $home/bin!);
 		system(qq!$home/gitolite/install -to $home/bin!);
-		say(qq!$home/bin/gitolite setup -pk  $home/.ssh/gitolite_admin.pub!);
-		system(qq!$home/bin/gitolite setup -pk  $home/.ssh/gitolite_admin.pub!);
+		say(qq!$home/bin/gitolite setup -pk  $home/.ssh/id_rsa.pub!);
+		system(qq!$home/bin/gitolite setup -pk  $home/.ssh/id_rsa.pub!);
 		chdir $home;
         unless (-d "${home}/gitolite-admin" ) {
-    debug qq!/opt/app/murex/SEB/bin/git clone ${repodir}/gitolite-admin.git!;
-    system(qq!/opt/app/murex/SEB/bin/git clone ${repodir}/gitolite-admin.git!);
+    my $user = (getpwuid($EUID))[0];
+    debug qq!/opt/app/murex/SEB/bin/git clone ${user}\@${hostname}:gitolite-admin!;
+    system(qq!/opt/app/murex/SEB/bin/git clone ${user}\@${hostname}:gitolite-admin!);
     }
 }
 sub get_gitolite_config {
@@ -308,7 +302,8 @@ sub get_gitolite_config {
             $config->{groups}{ $group } = [ @users ];
         }
         if ($line =~ m/^repo/) {
-            next if $line =~ m/gitolite-admin/;
+            next if $line =~ m/repo gitolite-admin$/;
+            next if $line =~ m/repo testing$/;
             debug "Processing repo $line";
             my @repos = split(/\s+/, $line);
             shift @repos;
@@ -324,6 +319,7 @@ sub get_gitolite_config {
                 foreach my $repo (@repos) {
                     if ($repo =~ m!/!) {
                         my @bits = split("/", $repo);
+                        $config->{repos}{$bits[0]}{$repo}=$bits[1];
                         $config->{projects}{$bits[0]}{$repo}=$bits[1];
                     }
                     foreach my $thing (@things) {
@@ -374,5 +370,36 @@ sub load_config {
     do $gitoweb_cfg;
     $output = Data::Dumper->Dump([$config], [qw/$config/]);
     debug "after load $output";
+}
+sub get_repo_details {
+    my ($project, $repo) = @_;
+    chdir "${repodir}/${project}/${repo}.git";
+    my $fh = new FileHandle("$gitpath ls-tree -r HEAD|") or die "Can't run  git: $!";
+    while (my $line = <$fh>) {
+        debug $line;
+        my ($mode, $type, $object, $file) = split(/\s+/, $line);
+        my $output = Data::Dumper->Dump([$mode, $type, $object, $file ], [qw/$mode $type $object $file/]);
+        debug $output;
+        $config->{repos}{$repo}{files}{$file} = { mode => $mode,
+                                                  object => $object,
+                                                  contents => get_file_contents($project, $repo, $file),
+                                              };
+    }
+    $fh->close;
+}
+sub get_file_contents {
+    my ($project, $repo, $file) = @_;
+    my $object = $config->{repos}{$repo}{files}{$file}{object};
+    my $output = Data::Dumper->Dump([$project, $repo, $file, $object ], [qw/$project $repo $file $object/]);
+    debug $output;
+    chdir "${repodir}/${project}/${repo}.git";
+    my @contents = ();
+    debug "$gitpath cat-file $object";
+#    my $fh = new FileHandle("$gitpath cat-file $object |") or die "Can't run  git: $!";
+#    while (my $line = <$fh>) {
+#        push(@contents, $line);
+#    }
+#    $fh->close;
+    return join("\n", @contents);
 }
 true;

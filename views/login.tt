@@ -1,18 +1,11 @@
-[% USE Dumper %]
 <div id="page">
-
       <div id="content">
         <form class="form-horizontal" action="[% req.base_url %]/login" method="POST" enctype="multipart/form-data">
         <fieldset>
           <legend>Log in or Register</legend>
-
-<!--
-[% Dumper.dump(message, users) %]
--->
           <div class="control-group">
             <label class="control-label" for="user">User name</label>
             <div class="controls">
-              <select name="User">
               <input type="text" name="user" id="user">
             </div>
           </div>
